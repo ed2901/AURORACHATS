@@ -43,6 +43,19 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Auto-inicializar instancias activas al arrancar
+  try {
+    const result = await pool.query('SELECT id, phone_number FROM instances WHERE is_active = true');
+    for (const instance of result.rows) {
+      console.log(`Auto-initializing instance ${instance.id}...`);
+      initializeInstance(instance.id, instance.phone_number).catch(err => {
+        console.error(`Error auto-initializing instance ${instance.id}:`, err.message);
+      });
+    }
+  } catch (err) {
+    console.error('Error loading instances on startup:', err.message);
+  }
 });
