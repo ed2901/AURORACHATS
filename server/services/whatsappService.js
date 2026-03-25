@@ -93,6 +93,13 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
       return;
     }
 
+    // Cerrar socket existente si hay uno
+    const existingSock = activeInstances.get(instanceId);
+    if (existingSock) {
+      try { existingSock.end(); } catch (e) {}
+      activeInstances.delete(instanceId);
+    }
+
     initializingInstances.add(instanceId);
 
     const { state, saveCreds } = await usePostgresAuthState(instanceId);
