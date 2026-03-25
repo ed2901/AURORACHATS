@@ -34,12 +34,6 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 
     const sessionPath = path.join(sessionsDir, `session-instance_${instanceId}`);
 
-    // Limpiar sesión vieja para forzar nuevo QR
-    if (fs.existsSync(sessionPath)) {
-      fs.rmSync(sessionPath, { recursive: true, force: true });
-      console.log(`[Instance ${instanceId}] Session cleared, starting fresh...`);
-    }
-
     fs.mkdirSync(sessionPath, { recursive: true });
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
@@ -87,22 +81,28 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
       if (connection === 'close') {
         connectionAttempts++;
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
         console.log(`[Instance ${instanceId}] Connection closed (attempt ${connectionAttempts}/${maxAttempts}). Status: ${statusCode}`);
 
-        if (shouldReconnect && connectionAttempts < maxAttempts) {
+        if (isLoggedOut) {
+          console.log(`[Instance ${instanceId}] Logged out, clearing session...`);
+          if (fs.existsSync(sessionPath)) {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+          }
+          activeInstances.delete(instanceId);
+          initializingInstances.delete(instanceId);
+        } else if (connectionAttempts < maxAttempts) {
           console.log(`[Instance ${instanceId}] Retrying in 3 seconds...`);
           setTimeout(() => {
             initializingInstances.delete(instanceId);
             initializeInstance(instanceId, phoneNumber);
           }, 3000);
         } else {
-          console.log(`[Instance ${instanceId}] Max attempts reached or logged out.`);
+          console.log(`[Instance ${instanceId}] Max attempts reached.`);
           activeInstances.delete(instanceId);
           initializingInstances.delete(instanceId);
         }
-      }
-    });
+      }    });
 
     return sock;
   } catch (error) {
