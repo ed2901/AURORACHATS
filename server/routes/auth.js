@@ -34,10 +34,19 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const result = await pool.query(
+    // Try to find user by email or employee_code
+    let result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
     );
+
+    // If not found by email, try by employee_code
+    if (result.rows.length === 0) {
+      result = await pool.query(
+        'SELECT * FROM users WHERE employee_code = $1',
+        [email]
+      );
+    }
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });

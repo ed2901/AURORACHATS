@@ -28,6 +28,19 @@ router.post('/', verifyToken, requireRole(['admin']), async (req, res) => {
   }
 });
 
+// Get all users (admin only)
+router.get('/', verifyToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, full_name, employee_code, role, instance_id FROM users ORDER BY full_name'
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Get users for instance
 router.get('/instance/:instanceId', verifyToken, async (req, res) => {
   try {

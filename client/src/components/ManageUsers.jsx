@@ -25,10 +25,17 @@ export default function ManageUsers({ instanceId }) {
 
   const loadUsers = async () => {
     try {
-      const response = await userAPI.getByInstance(instanceId);
+      setError('');
+      let response;
+      if (instanceId) {
+        response = await userAPI.getByInstance(instanceId);
+      } else {
+        response = await userAPI.getAll();
+      }
       setUsers(response.data);
     } catch (err) {
-      setError('Error loading users');
+      console.error('Error loading users:', err);
+      setError(err.response?.data?.error || 'Error cargando usuarios');
     } finally {
       setLoading(false);
     }
@@ -159,11 +166,14 @@ export default function ManageUsers({ instanceId }) {
 
             {!editingUserId && (
               <div className="form-group">
-                <label>Employee Code</label>
+                <label>Employee Code (ej: KN032600)</label>
                 <input
                   type="text"
                   value={formData.employeeCode}
-                  onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value.toUpperCase() })}
+                  placeholder="KN032600"
+                  pattern="[A-Z]{2}[0-9]{6}"
+                  title="Formato: 2 letras + 6 números (ej: KN032600)"
                   required
                 />
               </div>
@@ -177,6 +187,7 @@ export default function ManageUsers({ instanceId }) {
               >
                 <option value="agent">Agent</option>
                 <option value="supervisor">Supervisor</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
 

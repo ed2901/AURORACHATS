@@ -1,30 +1,38 @@
 .manage-users {
-  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .manage-users h2 {
   margin-top: 0;
-  color: #333;
+  color: #1a1a1a;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
 }
 
 .user-form-card {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: #f9f9f9;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 20px;
-  margin: 20px 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin: 0 0 32px 0;
 }
 
 .user-form-card h3 {
   margin-top: 0;
-  color: #333;
+  color: #1a1a1a;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 20px;
 }
 
 .user-form-card form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  gap: 16px;
 }
 
 .form-group {
@@ -34,31 +42,31 @@
 
 .form-group label {
   font-weight: 600;
-  margin-bottom: 5px;
-  color: #333;
-  font-size: 14px;
+  margin-bottom: 8px;
+  color: #374151;
+  font-size: 13px;
 }
 
 .form-group input,
 .form-group select {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 14px;
-  transition: border-color 0.3s;
+  transition: all 0.2s;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
 }
 
 .form-buttons {
   grid-column: 1 / -1;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
 }
 
@@ -66,7 +74,7 @@
   background: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   margin-top: 20px;
 }
 
@@ -76,22 +84,25 @@
 }
 
 .users-table thead {
-  background: #f5f5f5;
-  border-bottom: 2px solid #e0e0e0;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .users-table th {
-  padding: 15px;
+  padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  font-size: 14px;
+  color: #374151;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .users-table td {
-  padding: 15px;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .users-table tbody tr:hover {
@@ -100,96 +111,104 @@
 
 .role-badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .role-agent {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .role-supervisor {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .role-admin {
-  background: #ffe0b2;
-  color: #e65100;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .btn-small {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 11px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
+  font-weight: 600;
 }
 
 .btn-secondary {
-  background: #e0e0e0;
-  color: #333;
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .btn-secondary:hover {
-  background: #d0d0d0;
+  background: #d1d5db;
 }
 
 .btn-warning {
-  background: #ffc107;
-  color: #333;
+  background: #f59e0b;
+  color: white;
 }
 
 .btn-warning:hover {
-  background: #ffb300;
+  background: #d97706;
 }
 
 .btn-danger {
-  background: #dc3545;
+  background: #ef4444;
   color: white;
 }
 
 .btn-danger:hover {
-  background: #c82333;
+  background: #dc2626;
 }
 
 .btn-primary {
-  background: #007bff;
+  background: #14b8a6;
   color: white;
   padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
 }
 
 .btn-primary:hover {
-  background: #0056b3;
-  transform: translateY(-1px);
+  background: #0d9488;
+  transform: translateY(-2px);
 }
 
 .alert {
-  padding: 12px 15px;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  font-size: 14px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  border-left: 4px solid;
 }
 
 .alert-error {
-  background: #fee;
-  color: #c33;
-  border: 1px solid #fcc;
+  background: #fef2f2;
+  color: #991b1b;
+  border-left-color: #ef4444;
+}
+
+.alert-success {
+  background: #f0fdf4;
+  color: #166534;
+  border-left-color: #10b981;
 }
 
 .loading {
@@ -201,8 +220,8 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f0f0f0;
-  border-top: 4px solid #007bff;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #14b8a6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -234,7 +253,6 @@
   }
 }
 
-
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
@@ -261,9 +279,9 @@
 
 .modal-content {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-width: 400px;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
   width: 90%;
   animation: slideUp 0.3s ease-in-out;
 }
@@ -283,20 +301,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 18px;
-  color: #333;
+  font-size: 16px;
+  color: #1a1a1a;
+  font-weight: 700;
 }
 
 .modal-close {
   background: none;
   border: none;
-  font-size: 28px;
+  font-size: 24px;
   cursor: pointer;
   color: #999;
   padding: 0;
@@ -311,32 +330,32 @@
 
 .modal-close:hover {
   background: #f0f0f0;
-  color: #333;
+  color: #1a1a1a;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .modal-body .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .modal-footer {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
-  padding: 20px;
-  border-top: 1px solid #e0e0e0;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
   background: #f9f9f9;
 }
 
 .modal-footer .btn {
   padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   transition: all 0.2s;
 }

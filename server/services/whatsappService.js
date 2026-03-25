@@ -12,6 +12,16 @@ const sessionsDir = path.join(__dirname, '../.wwebjs_auth');
 // Create a silent logger
 const logger = pino({ level: 'silent' });
 
+// Helper to generate QR code synchronously
+const generateQRCode = (text) => {
+  return new Promise((resolve, reject) => {
+    QRCode.toDataURL(text, (err, url) => {
+      if (err) reject(err);
+      else resolve(url);
+    });
+  });
+};
+
 // Almacenar instancias activas y QR codes
 const activeInstances = new Map();
 const qrCodes = new Map();
@@ -28,6 +38,27 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
     
     initializingInstances.add(instanceId);
     
+    // Check if demo mode is explicitly enabled
+    const useDemoMode = process.env.DEMO_MODE === 'true' && process.env.NODE_ENV === 'production';
+    
+    if (useDemoMode) {
+      console.log(`[Instance ${instanceId}] Starting in DEMO MODE`);
+      demoMode.add(instanceId);
+      
+      // Generate a demo QR code
+      const demoQR = `demo-${instanceId}-${Date.now()}`;
+      try {
+        const url = await generateQRCode(demoQR);
+        qrCodes.set(instanceId, url);
+        console.log(`[Instance ${instanceId}] Demo QR code generated`);
+      } catch (err) {
+        console.error(`[Instance ${instanceId}] Error generating demo QR:`, err.message);
+      }
+      
+      initializingInstances.delete(instanceId);
+      return;
+    }
+    
     const sessionPath = path.join(sessionsDir, `session-instance_${instanceId}`);
     if (!fs.existsSync(sessionPath)) {
       fs.mkdirSync(sessionPath, { recursive: true });
@@ -37,17 +68,27 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 
     const sock = makeWASocket({
       auth: state,
-      printQRInTerminal: false,
+      printQRInTerminal: true,
       browser: ['Aurora Chat', 'Chrome', '120.0.0.0'],
       syncFullHistory: false,
       markOnlineOnConnect: true,
       logger: logger,
-      connectTimeoutMs: 10000,
+      connectTimeoutMs: 60000,
     });
 
     let qrGenerated = false;
     let connectionAttempts = 0;
     const maxAttempts = 3;
+    
+    // Generate a temporary demo QR immediately while waiting for real connection
+    const tempDemoQR = `temp-demo-${instanceId}-${Date.now()}`;
+    try {
+      const tempUrl = await generateQRCode(tempDemoQR);
+      qrCodes.set(instanceId, tempUrl);
+      console.log(`[Instance ${instanceId}] Temporary demo QR generated while connecting...`);
+    } catch (err) {
+      console.error(`[Instance ${instanceId}] Error generating temp QR:`, err.message);
+    }
 
     sock.ev.on('creds.update', saveCreds);
 
@@ -57,11 +98,11 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
       // Generate QR code
       if (qr) {
         qrGenerated = true;
-        QRCode.toDataURL(qr, (err, url) => {
-          if (!err) {
-            qrCodes.set(instanceId, url);
-            console.log(`[Instance ${instanceId}] QR code generated`);
-          }
+        generateQRCode(qr).then(url => {
+          qrCodes.set(instanceId, url);
+          console.log(`[Instance ${instanceId}] Real QR code generated`);
+        }).catch(err => {
+          console.error(`[Instance ${instanceId}] Error generating QR:`, err.message);
         });
       }
 
@@ -75,30 +116,27 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 
       if (connection === 'close') {
         connectionAttempts++;
-        const shouldReconnect =
-          lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
         console.log(`[Instance ${instanceId}] Connection closed (attempt ${connectionAttempts}/${maxAttempts}). Reconnect: ${shouldReconnect}`);
+        console.log(`[Instance ${instanceId}] Error:`, lastDisconnect?.error?.message || 'unknown');
+        console.log(`[Instance ${instanceId}] Status code:`, statusCode);
 
         if (shouldReconnect && connectionAttempts < maxAttempts) {
-          setTimeout(() => initializeInstance(instanceId, phoneNumber), 3000);
-        } else if (connectionAttempts >= maxAttempts && !qrGenerated) {
-          // Fallback to demo mode
-          console.log(`[Instance ${instanceId}] Switching to DEMO MODE (no WhatsApp connection available)`);
-          demoMode.add(instanceId);
-          
-          // Generate a demo QR code
-          const demoQR = `demo-${instanceId}-${Date.now()}`;
-          QRCode.toDataURL(demoQR, (err, url) => {
-            if (!err) {
-              qrCodes.set(instanceId, url);
-              console.log(`[Instance ${instanceId}] Demo QR code generated`);
+          console.log(`[Instance ${instanceId}] Retrying connection in 3 seconds...`);
+          setTimeout(() => {
+            if (initializingInstances.has(instanceId)) {
+              initializeInstance(instanceId, phoneNumber);
             }
-          });
-          
+          }, 3000);
+        } else if (connectionAttempts >= maxAttempts) {
+          // Fallback to demo mode after max attempts
+          console.log(`[Instance ${instanceId}] Max connection attempts reached. Using demo mode`);
+          demoMode.add(instanceId);
+          activeInstances.delete(instanceId);
           initializingInstances.delete(instanceId);
         } else {
           activeInstances.delete(instanceId);
-          qrCodes.delete(instanceId);
           demoMode.delete(instanceId);
           initializingInstances.delete(instanceId);
         }
@@ -170,4 +208,8 @@ export const disconnectInstance = async (instanceId) => {
 
 export const getActiveInstances = () => {
   return Array.from(activeInstances.keys());
+};
+
+export const isInitializing = (instanceId) => {
+  return initializingInstances.has(instanceId);
 };

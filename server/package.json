@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --exec node index.js",
-    "start": "node index.js",
+    "dev": "nodemon --ignore '.wwebjs_auth/**' --ignore 'auth_*/**' --exec node index.js",
+    "start": "node db/setup.js && node index.js",
     "setup-db": "node db/setup.js"
   },
   "dependencies": {

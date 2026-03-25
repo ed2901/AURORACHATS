@@ -5,7 +5,7 @@ import { authAPI } from '../api.js';
 import './Login.css';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await authAPI.login(email, password);
+      // For now, we'll use employeeCode as email (backend can be updated later)
+      const response = await authAPI.login(employeeCode, password);
       setAuth(response.data.user, response.data.token);
       navigate(response.data.user.role === 'agent' ? '/agent' : '/dashboard');
     } catch (err) {
@@ -45,18 +46,20 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email</label>
+            <label>Código de Empleado</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@crm.local"
+              type="text"
+              value={employeeCode}
+              onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
+              placeholder="Ingrese su código"
+              pattern="[A-Z]{2}[0-9]{6}"
+              title="Formato: 2 letras + 6 números"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>Contraseña</label>
             <input
               type="password"
               value={password}
@@ -67,7 +70,7 @@ export default function Login() {
           </div>
 
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
 

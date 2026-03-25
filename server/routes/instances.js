@@ -1,7 +1,7 @@
 import express from 'express';
 import pool from '../db/connection.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
-import { initializeInstance, checkInstanceStatus, disconnectInstance, getQRCode } from '../services/whatsappService.js';
+import { initializeInstance, checkInstanceStatus, disconnectInstance, getQRCode, isInitializing } from '../services/whatsappService.js';
 
 const router = express.Router();
 
@@ -119,11 +119,11 @@ router.get('/:id/status', verifyToken, async (req, res) => {
   try {
     const instanceId = req.params.id;
     
-    // Check if already connected
+    // Check if already connected or in demo mode
     let status = checkInstanceStatus(instanceId);
     
-    // If not connected, initialize Baileys to generate QR
-    if (!status.connected) {
+    // If not connected and not initializing, initialize Baileys to generate QR
+    if (!status.connected && !isInitializing(instanceId)) {
       const result = await pool.query(
         'SELECT phone_number FROM instances WHERE id = $1',
         [instanceId]
@@ -133,15 +133,19 @@ router.get('/:id/status', verifyToken, async (req, res) => {
         return res.status(404).json({ error: 'Instance not found' });
       }
       
-      // Initialize Baileys (will generate QR)
+      // Initialize Baileys (will generate QR or fall back to demo)
       await initializeInstance(instanceId, result.rows[0].phone_number);
-      
-      // Wait longer for QR to be generated
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      status = checkInstanceStatus(instanceId);
     }
     
+    // Wait for QR to be generated (with timeout)
+    let attempts = 0;
+    const maxAttempts = 15; // 7.5 seconds max
+    while (attempts < maxAttempts && !getQRCode(instanceId) && !checkInstanceStatus(instanceId).connected) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      attempts++;
+    }
+    
+    status = checkInstanceStatus(instanceId);
     const qr = getQRCode(instanceId);
     res.json({ ...status, qr });
   } catch (error) {

@@ -4,6 +4,7 @@ import { instanceAPI, userAPI } from '../api.js';
 import CreateInstance from '../components/CreateInstance.jsx';
 import ManageUsers from '../components/ManageUsers.jsx';
 import ChatManager from '../components/ChatManager.jsx';
+import QRModal from '../components/QRModal.jsx';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -13,7 +14,7 @@ export default function Dashboard() {
   const setInstances = useInstanceStore((state) => state.setInstances);
   const currentInstance = useInstanceStore((state) => state.currentInstance);
   const setCurrentInstance = useInstanceStore((state) => state.setCurrentInstance);
-  const [activeTab, setActiveTab] = useState('instances');
+  const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
   const [editingInstance, setEditingInstance] = useState(null);
   const [editName, setEditName] = useState('');
@@ -87,46 +88,58 @@ export default function Dashboard() {
     }
   };
 
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrInstanceId, setQrInstanceId] = useState(null);
+
+  const handleGetQR = (instanceId) => {
+    setQrInstanceId(instanceId);
+    setShowQRModal(true);
+  };
+
   return (
     <div className="dashboard">
-      <header className="dashboard-header">
-        <div className="header-left">
-          <h1>AURORA CHAT</h1>
-          <span className="role-badge">{user?.role.toUpperCase()}</span>
+      <nav className="dashboard-nav">
+        <div className="nav-logo-section">
+          <img src="https://i.ibb.co/j9MCP7CV/AURORA-LOGO.png" alt="Aurora Logo" className="nav-logo-img" />
         </div>
-        <div className="header-right">
-          <span>{user?.fullName}</span>
-          <button onClick={logout} className="btn btn-secondary">
-            Logout
-          </button>
-        </div>
-      </header>
+        <button
+          className={`nav-btn ${activeTab === 'instances' ? 'active' : ''}`}
+          onClick={() => setActiveTab('instances')}
+        >
+          📱 Instances
+        </button>
+        {user?.role !== 'agent' && (
+          <>
+            <button
+              className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              👥 Users
+            </button>
+            <button
+              className={`nav-btn ${activeTab === 'chats' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chats')}
+            >
+              💬 Chats
+            </button>
+          </>
+        )}
+      </nav>
 
       <div className="dashboard-content">
-        <nav className="dashboard-nav">
-          <button
-            className={`nav-btn ${activeTab === 'instances' ? 'active' : ''}`}
-            onClick={() => setActiveTab('instances')}
-          >
-            Instances
-          </button>
-          {user?.role !== 'agent' && (
-            <>
-              <button
-                className={`nav-btn ${activeTab === 'users' ? 'active' : ''}`}
-                onClick={() => setActiveTab('users')}
-              >
-                Users
-              </button>
-              <button
-                className={`nav-btn ${activeTab === 'chats' ? 'active' : ''}`}
-                onClick={() => setActiveTab('chats')}
-              >
-                Chats
-              </button>
-            </>
-          )}
-        </nav>
+        <header className="dashboard-header">
+          <div className="header-title">
+            <h1>Aurora Chat</h1>
+            <p>WhatsApp Management System</p>
+          </div>
+          <div className="header-right">
+            <span className="role-badge">{user?.role.toUpperCase()}</span>
+            <span className="user-name">{user?.fullName}</span>
+            <button onClick={logout} className="btn btn-secondary">
+              Logout
+            </button>
+          </div>
+        </header>
 
         <div className="dashboard-main">
           {loading ? (
@@ -180,7 +193,7 @@ export default function Dashboard() {
                               <h3>{instance.name}</h3>
                               <p>{instance.phone_number}</p>
                               <div className={`status ${instance.is_active ? 'active' : 'inactive'}`}>
-                                {instance.is_active ? 'Active' : 'Inactive'}
+                                {instance.is_active ? '🟢 Active' : '🔴 Inactive'}
                               </div>
                             </div>
                             {user?.role === 'admin' && (
@@ -191,14 +204,12 @@ export default function Dashboard() {
                                 >
                                   Edit
                                 </button>
-                                {!instance.is_active && (
-                                  <button
-                                    className="btn btn-primary"
-                                    onClick={() => handleReconnectInstance(instance.id)}
-                                  >
-                                    Reconnect
-                                  </button>
-                                )}
+                                <button
+                                  className="btn btn-primary"
+                                  onClick={() => handleGetQR(instance.id)}
+                                >
+                                  Get QR
+                                </button>
                                 <button
                                   className="btn btn-danger"
                                   onClick={() => handleDeleteInstance(instance.id)}
@@ -215,8 +226,8 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {activeTab === 'users' && currentInstance && (
-                <ManageUsers instanceId={currentInstance.id} />
+              {activeTab === 'users' && (
+                <ManageUsers instanceId={currentInstance?.id} />
               )}
 
               {activeTab === 'chats' && currentInstance && (
@@ -225,6 +236,22 @@ export default function Dashboard() {
             </>
           )}
         </div>
+
+        {qrInstanceId && (
+          <QRModal
+            instanceId={qrInstanceId}
+            isOpen={showQRModal}
+            onClose={() => setShowQRModal(false)}
+            onConnected={() => {
+              setShowQRModal(false);
+              loadInstances();
+            }}
+          />
+        )}
+
+        <footer className="dashboard-footer">
+          <p>&copy; 2024 Aurora Chat. Developed by Marvin Rodriguez & Rogelio Valiente</p>
+        </footer>
       </div>
     </div>
   );

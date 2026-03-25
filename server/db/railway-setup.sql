@@ -1,5 +1,8 @@
--- Users table
-CREATE TABLE users (
+-- =============================================
+-- AURORA CHAT - Railway Database Setup
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
@@ -11,8 +14,7 @@ CREATE TABLE users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Instances (WhatsApp numbers)
-CREATE TABLE instances (
+CREATE TABLE IF NOT EXISTS instances (
   id SERIAL PRIMARY KEY,
   phone_number VARCHAR(20) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
@@ -24,8 +26,7 @@ CREATE TABLE instances (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Clients
-CREATE TABLE clients (
+CREATE TABLE IF NOT EXISTS clients (
   id SERIAL PRIMARY KEY,
   instance_id INTEGER NOT NULL REFERENCES instances(id),
   phone_number VARCHAR(20) NOT NULL,
@@ -37,8 +38,7 @@ CREATE TABLE clients (
   UNIQUE(instance_id, phone_number)
 );
 
--- Chats
-CREATE TABLE chats (
+CREATE TABLE IF NOT EXISTS chats (
   id SERIAL PRIMARY KEY,
   instance_id INTEGER NOT NULL REFERENCES instances(id),
   client_id INTEGER NOT NULL REFERENCES clients(id),
@@ -48,8 +48,7 @@ CREATE TABLE chats (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Messages
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
   id SERIAL PRIMARY KEY,
   chat_id INTEGER NOT NULL REFERENCES chats(id),
   sender_id INTEGER REFERENCES users(id),
@@ -62,8 +61,7 @@ CREATE TABLE messages (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Chat assignments history
-CREATE TABLE chat_assignments (
+CREATE TABLE IF NOT EXISTS chat_assignments (
   id SERIAL PRIMARY KEY,
   chat_id INTEGER NOT NULL REFERENCES chats(id),
   assigned_to_id INTEGER NOT NULL REFERENCES users(id),
@@ -71,11 +69,20 @@ CREATE TABLE chat_assignments (
   assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes
-CREATE INDEX idx_users_instance ON users(instance_id);
-CREATE INDEX idx_instances_admin ON instances(admin_id);
-CREATE INDEX idx_clients_instance ON clients(instance_id);
-CREATE INDEX idx_chats_instance ON chats(instance_id);
-CREATE INDEX idx_chats_agent ON chats(assigned_agent_id);
-CREATE INDEX idx_messages_chat ON messages(chat_id);
-CREATE INDEX idx_assignments_chat ON chat_assignments(chat_id);
+CREATE INDEX IF NOT EXISTS idx_users_instance ON users(instance_id);
+CREATE INDEX IF NOT EXISTS idx_instances_admin ON instances(admin_id);
+CREATE INDEX IF NOT EXISTS idx_clients_instance ON clients(instance_id);
+CREATE INDEX IF NOT EXISTS idx_chats_instance ON chats(instance_id);
+CREATE INDEX IF NOT EXISTS idx_chats_agent ON chats(assigned_agent_id);
+CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_chat ON chat_assignments(chat_id);
+
+-- Admin: codigo MR032600 / password: admin123
+INSERT INTO users (email, password, full_name, employee_code, role)
+VALUES (
+  'admin@crm.local',
+  '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+  'Administrator',
+  'MR032600',
+  'admin'
+) ON CONFLICT (employee_code) DO NOTHING;

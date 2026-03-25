@@ -25,9 +25,13 @@ export default function QRModal({ instanceId, isOpen, onClose, onConnected }) {
         if (response.data.connected) {
           setIsConnected(true);
           if (onConnected) onConnected();
+        } else if (!response.data.qr) {
+          // If no QR and not connected, try again after a delay
+          setTimeout(fetchQRCode, 1000);
+          return;
         }
       } catch (err) {
-        setError('Error generating QR code: ' + err.response?.data?.error);
+        setError('Error generating QR code: ' + (err.response?.data?.error || err.message));
       } finally {
         setLoading(false);
       }
