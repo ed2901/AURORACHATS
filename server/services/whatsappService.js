@@ -124,6 +124,73 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 
     sock.ev.on('creds.update', saveCreds);
 
+    // Listener para mensajes entrantes
+    sock.ev.on('messages.upsert', async ({ messages: incomingMessages, type }) => {
+      if (type !== 'notify') return;
+
+      for (const msg of incomingMessages) {
+        // Ignorar mensajes propios y de grupos
+        if (msg.key.fromMe || msg.key.remoteJid.endsWith('@g.us')) continue;
+
+        const senderPhone = msg.key.remoteJid.replace('@s.whatsapp.net', '');
+        const content = msg.message?.conversation
+          || msg.message?.extendedTextMessage?.text
+          || msg.message?.imageMessage?.caption
+          || null;
+
+        if (!content) continue;
+
+        try {
+          // Buscar o crear cliente
+          let clientResult = await pool.query(
+            'SELECT id FROM clients WHERE instance_id = $1 AND phone_number = $2',
+            [instanceId, senderPhone]
+          );
+
+          let clientId;
+          if (clientResult.rows.length === 0) {
+            const newClient = await pool.query(
+              'INSERT INTO clients (instance_id, phone_number) VALUES ($1, $2) RETURNING id',
+              [instanceId, senderPhone]
+            );
+            clientId = newClient.rows[0].id;
+          } else {
+            clientId = clientResult.rows[0].id;
+          }
+
+          // Buscar o crear chat abierto
+          let chatResult = await pool.query(
+            `SELECT id FROM chats WHERE instance_id = $1 AND client_id = $2 AND status = 'open'`,
+            [instanceId, clientId]
+          );
+
+          let chatId;
+          if (chatResult.rows.length === 0) {
+            const newChat = await pool.query(
+              'INSERT INTO chats (instance_id, client_id) VALUES ($1, $2) RETURNING id',
+              [instanceId, clientId]
+            );
+            chatId = newChat.rows[0].id;
+          } else {
+            chatId = chatResult.rows[0].id;
+          }
+
+          // Guardar mensaje
+          await pool.query(
+            `INSERT INTO messages (chat_id, sender_type, content) VALUES ($1, 'client', $2)`,
+            [chatId, content]
+          );
+
+          // Actualizar timestamp del chat
+          await pool.query('UPDATE chats SET updated_at = NOW() WHERE id = $1', [chatId]);
+
+          console.log(`[Instance ${instanceId}] Incoming message from ${senderPhone} saved`);
+        } catch (err) {
+          console.error(`[Instance ${instanceId}] Error saving incoming message:`, err.message);
+        }
+      }
+    });
+
     sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect, qr } = update;
 
