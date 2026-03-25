@@ -81,7 +81,7 @@ CREATE INDEX IF NOT EXISTS idx_assignments_chat ON chat_assignments(chat_id);
 INSERT INTO users (email, password, full_name, employee_code, role)
 VALUES (
   'admin@crm.local',
-  '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+  '$2a$10$SWS0ObtJnyWYuYGpMCOXTeHzxKsRr0O.Qq2/SkkW.grQDpMldPh9G',
   'Administrator',
   'MR032600',
   'admin'
