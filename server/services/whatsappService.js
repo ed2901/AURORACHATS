@@ -30,14 +30,19 @@ const demoMode = new Set(); // Instancias en modo demo
 
 export const initializeInstance = async (instanceId, phoneNumber) => {
   try {
-    // Prevent duplicate initialization
     if (initializingInstances.has(instanceId)) {
       console.log(`[Instance ${instanceId}] Already initializing, skipping...`);
       return;
     }
     
     initializingInstances.add(instanceId);
-    
+
+    // Limpiar sesión vieja para forzar nuevo QR
+    const sessionPath = path.join(sessionsDir, `session-instance_${instanceId}`);
+    if (fs.existsSync(sessionPath)) {
+      fs.rmSync(sessionPath, { recursive: true, force: true });
+      console.log(`[Instance ${instanceId}] Session cleared, starting fresh...`);
+    }
     // Check if demo mode is explicitly enabled
     const useDemoMode = process.env.DEMO_MODE === 'true' && process.env.NODE_ENV === 'production';
     
