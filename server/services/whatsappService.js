@@ -1,4 +1,4 @@
-import { default as makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } from '@whiskeysockets/baileys';
+import { default as makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
@@ -43,8 +43,11 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
     fs.mkdirSync(sessionPath, { recursive: true });
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+    const { version } = await fetchLatestBaileysVersion();
+    console.log(`[Instance ${instanceId}] Using WA version: ${version.join('.')}`);
 
     const sock = makeWASocket({
+      version,
       auth: state,
       printQRInTerminal: false,
       browser: Browsers.ubuntu('Chrome'),
