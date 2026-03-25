@@ -201,6 +201,7 @@ export default function Dashboard() {
                               <div className="instance-actions">
                                 <button className="btn btn-secondary" onClick={() => handleEditInstance(instance)}>Edit</button>
                                 <button className="btn btn-primary" onClick={() => handleGetQR(instance.id)}>Get QR</button>
+                                <button className="btn btn-success" onClick={() => { setCurrentInstance(instance); setActiveTab('chats'); }}>💬 Chats</button>
                                 <button className="btn btn-danger" onClick={() => handleDeleteInstance(instance.id)}>Delete</button>
                               </div>
                             )}
