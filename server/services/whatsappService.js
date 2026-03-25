@@ -21,19 +21,31 @@ const generateQRCode = (text) => {
 // Auth state usando PostgreSQL
 const usePostgresAuthState = async (instanceId) => {
   const writeData = async (data, key) => {
-    const json = JSON.stringify(data, BufferJSON.replacer);
-    if (key === 'creds') {
-      await pool.query(
-        `INSERT INTO whatsapp_sessions (instance_id, creds, updated_at)
-         VALUES ($1, $2, NOW())
-         ON CONFLICT (instance_id) DO UPDATE SET creds = $2, updated_at = NOW()`,
-        [instanceId, json]
-      );
-    } else {
-      await pool.query(
-        `UPDATE whatsapp_sessions SET keys = $2, updated_at = NOW() WHERE instance_id = $1`,
-        [instanceId, json]
-      );
+    try {
+      // Verificar que la instancia existe antes de escribir
+      const exists = await pool.query('SELECT id FROM instances WHERE id = $1', [instanceId]);
+      if (exists.rows.length === 0) {
+        console.warn(`[Instance ${instanceId}] Instance not found in DB, skipping session write`);
+        return;
+      }
+      const json = JSON.stringify(data, BufferJSON.replacer);
+      if (key === 'creds') {
+        await pool.query(
+          `INSERT INTO whatsapp_sessions (instance_id, creds, updated_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (instance_id) DO UPDATE SET creds = $2, updated_at = NOW()`,
+          [instanceId, json]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO whatsapp_sessions (instance_id, keys, updated_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (instance_id) DO UPDATE SET keys = $2, updated_at = NOW()`,
+          [instanceId, json]
+        );
+      }
+    } catch (err) {
+      console.error(`[Instance ${instanceId}] Error writing session data:`, err.message);
     }
   };
 
@@ -261,6 +273,7 @@ export const sendMessage = async (instanceId, clientPhone, message) => {
   try {
     const sock = activeInstances.get(instanceId);
     if (!sock) throw new Error('Instance not connected');
+    if (!sock.user) throw new Error('Instance not ready yet');
     const jid = clientPhone.includes('@') ? clientPhone : `${clientPhone}@s.whatsapp.net`;
     await sock.sendMessage(jid, { text: message });
     console.log(`[Instance ${instanceId}] Message sent to ${clientPhone}`);

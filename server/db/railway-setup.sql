@@ -69,6 +69,13 @@ CREATE TABLE IF NOT EXISTS chat_assignments (
   assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+  instance_id INTEGER PRIMARY KEY REFERENCES instances(id) ON DELETE CASCADE,
+  creds TEXT,
+  keys TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_instance ON users(instance_id);
 CREATE INDEX IF NOT EXISTS idx_instances_admin ON instances(admin_id);
 CREATE INDEX IF NOT EXISTS idx_clients_instance ON clients(instance_id);
