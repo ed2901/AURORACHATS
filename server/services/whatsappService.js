@@ -64,7 +64,6 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
       return;
     }
     
-    const sessionPath = path.join(sessionsDir, `session-instance_${instanceId}`);
     if (!fs.existsSync(sessionPath)) {
       fs.mkdirSync(sessionPath, { recursive: true });
     }
