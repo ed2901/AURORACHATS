@@ -1,5 +1,5 @@
 // WhatsApp Service - Con Baileys (con fallback a demo mode)
-import { default as makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import { default as makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
@@ -68,12 +68,14 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 
     const sock = makeWASocket({
       auth: state,
-      printQRInTerminal: true,
-      browser: ['Aurora Chat', 'Chrome', '120.0.0.0'],
+      printQRInTerminal: false,
+      browser: Browsers.ubuntu('Chrome'),
       syncFullHistory: false,
-      markOnlineOnConnect: true,
+      markOnlineOnConnect: false,
       logger: logger,
       connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
+      keepAliveIntervalMs: 10000,
     });
 
     let qrGenerated = false;
