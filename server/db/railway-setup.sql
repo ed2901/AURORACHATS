@@ -76,6 +76,10 @@ CREATE TABLE IF NOT EXISTS whatsapp_sessions (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ensure columns are nullable (fix for existing deployments)
+ALTER TABLE whatsapp_sessions ALTER COLUMN creds DROP NOT NULL;
+ALTER TABLE whatsapp_sessions ALTER COLUMN keys DROP NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_users_instance ON users(instance_id);
 CREATE INDEX IF NOT EXISTS idx_instances_admin ON instances(admin_id);
 CREATE INDEX IF NOT EXISTS idx_clients_instance ON clients(instance_id);

@@ -22,25 +22,29 @@ const generateQRCode = (text) => {
 const usePostgresAuthState = async (instanceId) => {
   const writeData = async (data, key) => {
     try {
-      // Verificar que la instancia existe antes de escribir
       const exists = await pool.query('SELECT id FROM instances WHERE id = $1', [instanceId]);
       if (exists.rows.length === 0) {
         console.warn(`[Instance ${instanceId}] Instance not found in DB, skipping session write`);
         return;
       }
       const json = JSON.stringify(data, BufferJSON.replacer);
+      // Upsert usando la columna correcta, sin tocar la otra
       if (key === 'creds') {
         await pool.query(
           `INSERT INTO whatsapp_sessions (instance_id, creds, updated_at)
            VALUES ($1, $2, NOW())
-           ON CONFLICT (instance_id) DO UPDATE SET creds = $2, updated_at = NOW()`,
+           ON CONFLICT (instance_id) DO UPDATE SET creds = EXCLUDED.creds, updated_at = NOW()`,
           [instanceId, json]
         );
       } else {
+        // Para keys: si no existe el registro aún, no insertar (esperar a que creds se guarde primero)
+        const sessionExists = await pool.query(
+          'SELECT instance_id FROM whatsapp_sessions WHERE instance_id = $1',
+          [instanceId]
+        );
+        if (sessionExists.rows.length === 0) return; // creds aún no guardadas
         await pool.query(
-          `INSERT INTO whatsapp_sessions (instance_id, keys, updated_at)
-           VALUES ($1, $2, NOW())
-           ON CONFLICT (instance_id) DO UPDATE SET keys = $2, updated_at = NOW()`,
+          `UPDATE whatsapp_sessions SET keys = $2, updated_at = NOW() WHERE instance_id = $1`,
           [instanceId, json]
         );
       }
