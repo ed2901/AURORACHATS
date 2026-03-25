@@ -123,6 +123,7 @@ export const getQRCode = (instanceId) => {
 
 export const sendMessage = async (instanceId, clientPhone, message) => {
   try {
+    console.log(`[Instance ${instanceId}] Attempting to send. Active instances:`, Array.from(activeInstances.keys()));
     const sock = activeInstances.get(instanceId);
     if (!sock) throw new Error('Instance not connected');
     const jid = clientPhone.includes('@') ? clientPhone : `${clientPhone}@s.whatsapp.net`;
