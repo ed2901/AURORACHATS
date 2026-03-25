@@ -21,7 +21,6 @@ const generateQRCode = (text) => {
 const activeInstances = new Map();
 const qrCodes = new Map();
 const initializingInstances = new Set();
-const demoMode = new Set();
 
 export const initializeInstance = async (instanceId, phoneNumber) => {
   try {
@@ -33,7 +32,6 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
     initializingInstances.add(instanceId);
 
     const sessionPath = path.join(sessionsDir, `session-instance_${instanceId}`);
-
     fs.mkdirSync(sessionPath, { recursive: true });
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
@@ -54,7 +52,7 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
     });
 
     let connectionAttempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 5;
 
     sock.ev.on('creds.update', saveCreds);
 
@@ -73,9 +71,9 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
       if (connection === 'open') {
         console.log(`[Instance ${instanceId}] Connected successfully`);
         activeInstances.set(instanceId, sock);
-        demoMode.delete(instanceId);
         qrCodes.delete(instanceId);
         initializingInstances.delete(instanceId);
+        connectionAttempts = 0;
       }
 
       if (connection === 'close') {
@@ -84,25 +82,26 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
         console.log(`[Instance ${instanceId}] Connection closed (attempt ${connectionAttempts}/${maxAttempts}). Status: ${statusCode}`);
 
+        activeInstances.delete(instanceId);
+
         if (isLoggedOut) {
           console.log(`[Instance ${instanceId}] Logged out, clearing session...`);
           if (fs.existsSync(sessionPath)) {
             fs.rmSync(sessionPath, { recursive: true, force: true });
           }
-          activeInstances.delete(instanceId);
           initializingInstances.delete(instanceId);
         } else if (connectionAttempts < maxAttempts) {
-          console.log(`[Instance ${instanceId}] Retrying in 3 seconds...`);
+          console.log(`[Instance ${instanceId}] Retrying in 5 seconds...`);
           setTimeout(() => {
             initializingInstances.delete(instanceId);
             initializeInstance(instanceId, phoneNumber);
-          }, 3000);
+          }, 5000);
         } else {
           console.log(`[Instance ${instanceId}] Max attempts reached.`);
-          activeInstances.delete(instanceId);
           initializingInstances.delete(instanceId);
         }
-      }    });
+      }
+    });
 
     return sock;
   } catch (error) {
@@ -113,7 +112,6 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 };
 
 export const checkInstanceStatus = (instanceId) => {
-  if (demoMode.has(instanceId)) return { connected: true, demo: true };
   const sock = activeInstances.get(instanceId);
   if (!sock) return { connected: false };
   return { connected: !!sock.user, user: sock.user };
@@ -125,10 +123,6 @@ export const getQRCode = (instanceId) => {
 
 export const sendMessage = async (instanceId, clientPhone, message) => {
   try {
-    if (demoMode.has(instanceId)) {
-      console.log(`[Instance ${instanceId}] DEMO: Message to ${clientPhone}: ${message}`);
-      return true;
-    }
     const sock = activeInstances.get(instanceId);
     if (!sock || !sock.user) throw new Error('Instance not connected');
     const jid = clientPhone.includes('@') ? clientPhone : `${clientPhone}@s.whatsapp.net`;
@@ -149,7 +143,6 @@ export const disconnectInstance = async (instanceId) => {
       activeInstances.delete(instanceId);
     }
     qrCodes.delete(instanceId);
-    demoMode.delete(instanceId);
     initializingInstances.delete(instanceId);
     console.log(`[Instance ${instanceId}] Disconnected`);
   } catch (error) {
