@@ -1,12 +1,12 @@
-import { default as makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
+import { default as makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion, initAuthCreds, BufferJSON } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pino from 'pino';
+import pool from '../db/connection.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const sessionsDir = path.join(__dirname, '../.wwebjs_auth');
 const logger = pino({ level: 'silent' });
 
 const generateQRCode = (text) => {
@@ -16,6 +16,70 @@ const generateQRCode = (text) => {
       else resolve(url);
     });
   });
+};
+
+// Auth state usando PostgreSQL
+const usePostgresAuthState = async (instanceId) => {
+  const writeData = async (data, key) => {
+    const json = JSON.stringify(data, BufferJSON.replacer);
+    if (key === 'creds') {
+      await pool.query(
+        `INSERT INTO whatsapp_sessions (instance_id, creds, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (instance_id) DO UPDATE SET creds = $2, updated_at = NOW()`,
+        [instanceId, json]
+      );
+    } else {
+      await pool.query(
+        `UPDATE whatsapp_sessions SET keys = $2, updated_at = NOW() WHERE instance_id = $1`,
+        [instanceId, json]
+      );
+    }
+  };
+
+  const readData = async (key) => {
+    try {
+      const result = await pool.query(
+        `SELECT ${key} FROM whatsapp_sessions WHERE instance_id = $1`,
+        [instanceId]
+      );
+      if (result.rows.length === 0 || !result.rows[0][key]) return null;
+      return JSON.parse(result.rows[0][key], BufferJSON.reviver);
+    } catch {
+      return null;
+    }
+  };
+
+  const creds = (await readData('creds')) || initAuthCreds();
+
+  return {
+    state: {
+      creds,
+      keys: {
+        get: async (type, ids) => {
+          const keysData = (await readData('keys')) || {};
+          const data = {};
+          for (const id of ids) {
+            const val = keysData[`${type}-${id}`];
+            if (val) data[id] = val;
+          }
+          return data;
+        },
+        set: async (data) => {
+          const keysData = (await readData('keys')) || {};
+          for (const category of Object.keys(data)) {
+            for (const id of Object.keys(data[category])) {
+              keysData[`${category}-${id}`] = data[category][id];
+            }
+          }
+          await writeData(keysData, 'keys');
+        },
+      },
+    },
+    saveCreds: async () => {
+      await writeData(creds, 'creds');
+    },
+  };
 };
 
 const activeInstances = new Map();
@@ -31,10 +95,7 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 
     initializingInstances.add(instanceId);
 
-    const sessionPath = path.join(sessionsDir, `session-instance_${instanceId}`);
-    fs.mkdirSync(sessionPath, { recursive: true });
-
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+    const { state, saveCreds } = await usePostgresAuthState(instanceId);
     const { version } = await fetchLatestBaileysVersion();
     console.log(`[Instance ${instanceId}] Using WA version: ${version.join('.')}`);
 
@@ -74,6 +135,8 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
         qrCodes.delete(instanceId);
         initializingInstances.delete(instanceId);
         connectionAttempts = 0;
+        // Marcar instancia como activa en BD
+        pool.query('UPDATE instances SET is_active = true WHERE id = $1', [instanceId]).catch(() => {});
       }
 
       if (connection === 'close') {
@@ -86,9 +149,8 @@ export const initializeInstance = async (instanceId, phoneNumber) => {
 
         if (isLoggedOut) {
           console.log(`[Instance ${instanceId}] Logged out, clearing session...`);
-          if (fs.existsSync(sessionPath)) {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-          }
+          pool.query('DELETE FROM whatsapp_sessions WHERE instance_id = $1', [instanceId]).catch(() => {});
+          pool.query('UPDATE instances SET is_active = false WHERE id = $1', [instanceId]).catch(() => {});
           initializingInstances.delete(instanceId);
         } else if (connectionAttempts < maxAttempts) {
           console.log(`[Instance ${instanceId}] Retrying in 5 seconds...`);
@@ -123,7 +185,6 @@ export const getQRCode = (instanceId) => {
 
 export const sendMessage = async (instanceId, clientPhone, message) => {
   try {
-    console.log(`[Instance ${instanceId}] Attempting to send. Active instances:`, Array.from(activeInstances.keys()));
     const sock = activeInstances.get(instanceId);
     if (!sock) throw new Error('Instance not connected');
     const jid = clientPhone.includes('@') ? clientPhone : `${clientPhone}@s.whatsapp.net`;

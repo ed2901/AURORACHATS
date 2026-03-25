@@ -66,8 +66,14 @@ export default function ChatManager({ instanceId }) {
 
   const handleNewChat = async (e) => {
     e.preventDefault();
+    // Validar número de El Salvador (503 + 8 dígitos)
+    const cleanPhone = newPhone.replace(/\D/g, '');
+    if (!cleanPhone.startsWith('503') || cleanPhone.length !== 11) {
+      alert('Solo se pueden iniciar chats con números de El Salvador. Formato: 503XXXXXXXX (11 dígitos)');
+      return;
+    }
     try {
-      const clientRes = await clientAPI.create({ instanceId, phoneNumber: newPhone, name: newName });
+      const clientRes = await clientAPI.create({ instanceId, phoneNumber: cleanPhone, name: newName });
       await clientAPI.startChat(clientRes.data.id);
       setShowNewChat(false);
       setNewPhone('');
